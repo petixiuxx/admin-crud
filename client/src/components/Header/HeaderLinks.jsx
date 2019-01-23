@@ -1,113 +1,170 @@
-/*eslint-disable*/
 import React from "react";
-// react components for routing our app without refresh
-import { Link } from "react-router-dom";
-
+import classNames from "classnames";
 // @material-ui/core components
 import withStyles from "@material-ui/core/styles/withStyles";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import Tooltip from "@material-ui/core/Tooltip";
-
+import MenuItem from "@material-ui/core/MenuItem";
+import MenuList from "@material-ui/core/MenuList";
+import Grow from "@material-ui/core/Grow";
+import Paper from "@material-ui/core/Paper";
+import ClickAwayListener from "@material-ui/core/ClickAwayListener";
+import Hidden from "@material-ui/core/Hidden";
+import Poppers from "@material-ui/core/Popper";
 // @material-ui/icons
-import { Apps, CloudDownload } from "@material-ui/icons";
-
+import Person from "@material-ui/icons/Person";
+import Notifications from "@material-ui/icons/Notifications";
+import Dashboard from "@material-ui/icons/Dashboard";
+import Search from "@material-ui/icons/Search";
 // core components
-import CustomDropdown from "components/CustomDropdown/CustomDropdown.jsx";
+import CustomInput from "components/CustomInput/CustomInput.jsx";
 import Button from "components/CustomButtons/Button.jsx";
 
-import headerLinksStyle from "assets/jss/material-kit-react/components/headerLinksStyle.jsx";
+import headerLinksStyle from "assets/jss/material-dashboard-react/components/headerLinksStyle.jsx";
 
-function HeaderLinks({ ...props }) {
-  const { classes } = props;
-  return (
-    <List className={classes.list}>
-      <ListItem className={classes.listItem}>
-        <CustomDropdown
-          noLiPadding
-          buttonText="Components"
-          buttonProps={{
-            className: classes.navLink,
-            color: "transparent"
-          }}
-          buttonIcon={Apps}
-          dropdownList={[
-            <Link to="/" className={classes.dropdownLink}>
-              All components
-            </Link>,
-            <a
-              href="https://creativetimofficial.github.io/material-kit-react/#/documentation"
-              target="_blank"
-              className={classes.dropdownLink}
-            >
-              Documentation
-            </a>
-          ]}
-        />
-      </ListItem>
-      <ListItem className={classes.listItem}>
+class HeaderLinks extends React.Component {
+  state = {
+    open: false
+  };
+  handleToggle = () => {
+    this.setState(state => ({ open: !state.open }));
+  };
+
+  handleClose = event => {
+    if (this.anchorEl.contains(event.target)) {
+      return;
+    }
+
+    this.setState({ open: false });
+  };
+
+  render() {
+    const { classes } = this.props;
+    const { open } = this.state;
+    return (
+      <div>
+        <div className={classes.searchWrapper}>
+          <CustomInput
+            formControlProps={{
+              className: classes.margin + " " + classes.search
+            }}
+            inputProps={{
+              placeholder: "Search",
+              inputProps: {
+                "aria-label": "Search"
+              }
+            }}
+          />
+          <Button color="white" aria-label="edit" justIcon round>
+            <Search />
+          </Button>
+        </div>
         <Button
-          href="https://www.creative-tim.com/product/material-kit-react"
-          color="transparent"
-          target="_blank"
-          className={classes.navLink}
+          color={window.innerWidth > 959 ? "transparent" : "white"}
+          justIcon={window.innerWidth > 959}
+          simple={!(window.innerWidth > 959)}
+          aria-label="Dashboard"
+          className={classes.buttonLink}
         >
-          <CloudDownload className={classes.icons} /> Download
+          <Dashboard className={classes.icons} />
+          <Hidden mdUp implementation="css">
+            <p className={classes.linkText}>Dashboard</p>
+          </Hidden>
         </Button>
-      </ListItem>
-      <ListItem className={classes.listItem}>
-        <Tooltip
-          id="instagram-twitter"
-          title="Follow us on twitter"
-          placement={window.innerWidth > 959 ? "top" : "left"}
-          classes={{ tooltip: classes.tooltip }}
-        >
+        <div className={classes.manager}>
           <Button
-            href="https://twitter.com/CreativeTim"
-            target="_blank"
-            color="transparent"
-            className={classes.navLink}
+            buttonRef={node => {
+              this.anchorEl = node;
+            }}
+            color={window.innerWidth > 959 ? "transparent" : "white"}
+            justIcon={window.innerWidth > 959}
+            simple={!(window.innerWidth > 959)}
+            aria-owns={open ? "menu-list-grow" : null}
+            aria-haspopup="true"
+            onClick={this.handleToggle}
+            className={classes.buttonLink}
           >
-            <i className={classes.socialIcons + " fab fa-twitter"} />
+            <Notifications className={classes.icons} />
+            <span className={classes.notifications}>5</span>
+            <Hidden mdUp implementation="css">
+              <p onClick={this.handleClick} className={classes.linkText}>
+                Notification
+              </p>
+            </Hidden>
           </Button>
-        </Tooltip>
-      </ListItem>
-      <ListItem className={classes.listItem}>
-        <Tooltip
-          id="instagram-facebook"
-          title="Follow us on facebook"
-          placement={window.innerWidth > 959 ? "top" : "left"}
-          classes={{ tooltip: classes.tooltip }}
+          <Poppers
+            open={open}
+            anchorEl={this.anchorEl}
+            transition
+            disablePortal
+            className={
+              classNames({ [classes.popperClose]: !open }) +
+              " " +
+              classes.pooperNav
+            }
+          >
+            {({ TransitionProps, placement }) => (
+              <Grow
+                {...TransitionProps}
+                id="menu-list-grow"
+                style={{
+                  transformOrigin:
+                    placement === "bottom" ? "center top" : "center bottom"
+                }}
+              >
+                <Paper>
+                  <ClickAwayListener onClickAway={this.handleClose}>
+                    <MenuList role="menu">
+                      <MenuItem
+                        onClick={this.handleClose}
+                        className={classes.dropdownItem}
+                      >
+                        Mike John responded to your email
+                      </MenuItem>
+                      <MenuItem
+                        onClick={this.handleClose}
+                        className={classes.dropdownItem}
+                      >
+                        You have 5 new tasks
+                      </MenuItem>
+                      <MenuItem
+                        onClick={this.handleClose}
+                        className={classes.dropdownItem}
+                      >
+                        You're now friend with Andrew
+                      </MenuItem>
+                      <MenuItem
+                        onClick={this.handleClose}
+                        className={classes.dropdownItem}
+                      >
+                        Another Notification
+                      </MenuItem>
+                      <MenuItem
+                        onClick={this.handleClose}
+                        className={classes.dropdownItem}
+                      >
+                        Another One
+                      </MenuItem>
+                    </MenuList>
+                  </ClickAwayListener>
+                </Paper>
+              </Grow>
+            )}
+          </Poppers>
+        </div>
+        <Button
+          color={window.innerWidth > 959 ? "transparent" : "white"}
+          justIcon={window.innerWidth > 959}
+          simple={!(window.innerWidth > 959)}
+          aria-label="Person"
+          className={classes.buttonLink}
         >
-          <Button
-            color="transparent"
-            href="https://www.facebook.com/CreativeTim"
-            target="_blank"
-            className={classes.navLink}
-          >
-            <i className={classes.socialIcons + " fab fa-facebook"} />
-          </Button>
-        </Tooltip>
-      </ListItem>
-      <ListItem className={classes.listItem}>
-        <Tooltip
-          id="instagram-tooltip"
-          title="Follow us on instagram"
-          placement={window.innerWidth > 959 ? "top" : "left"}
-          classes={{ tooltip: classes.tooltip }}
-        >
-          <Button
-            color="transparent"
-            href="https://www.instagram.com/CreativeTimOfficial"
-            target="_blank"
-            className={classes.navLink}
-          >
-            <i className={classes.socialIcons + " fab fa-instagram"} />
-          </Button>
-        </Tooltip>
-      </ListItem>
-    </List>
-  );
+          <Person className={classes.icons} />
+          <Hidden mdUp implementation="css">
+            <p className={classes.linkText}>Profile</p>
+          </Hidden>
+        </Button>
+      </div>
+    );
+  }
 }
 
 export default withStyles(headerLinksStyle)(HeaderLinks);
