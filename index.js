@@ -6,9 +6,9 @@ require('dotenv').config();
 const path = require('path');
 const Sequelize = require('sequelize');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
-
-const sequelize = new Sequelize('adminCrud', 'root', 'holmes4869', {
+const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
   host: 'localhost',
   dialect: 'mysql',
   operatorsAliases: false,
@@ -32,7 +32,7 @@ sequelize.authenticate()
 const Admin = AdminModel(sequelize, Sequelize);
 const Quizz = QuizzModel(sequelize, Sequelize);
 
-Quizz.belongsTo(Admin);
+Admin.hasMany(Quizz, { as: 'Questions' });
 sequelize.sync({
     force: false
   })
@@ -42,6 +42,7 @@ sequelize.sync({
 
 const PORT = process.env.PORT || 4000;
 const app = express();
+app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 app.use(express.static(path.join(__dirname, 'client/build')));
@@ -70,13 +71,17 @@ app.get('/api/admins', (req, res) => {
 // Create quizz
 app.post('/api/quizzes', (req, res) => {
   const { detail, subQuestion, data, adminId } = req.body;
-  Admin.findById(adminId)
-  .then(() => Quizz.create({ detail, subQuestion, data })
-  .then(quiz => Quizz.findOne({ where: {id: quiz.id}, include: [Admin]}))
-  .then(quizWithAssociations => res.json(blogWithAssociations))
-  .catch(err => res.status(400).json({ err: `Admin with id = [${adminId}] doesn\'t exist.`})));
+  // Admin.findByPK(adminId)
+  // .then(() => Quizz.create({ detail, subQuestion, data })
+  // .then(quiz => Quizz.findOne({ where: {id: quiz.id}, include: [Admin]}))
+  // .then(quizWithAssociations => res.json(quizWithAssociations))
+  // .catch(err => res.status(400).json({ err: `Admin with id = [${adminId}] doesn\'t exist.`})));
   // Quizz.create({ detail, subQuestion, data, adminId })
   // .then(quiz => res.json(quiz));
+  Admin.findOne({ id: adminId })
+  .then((admin) => Quizz.create({ detail, subQuestion, data, adminId: admin.id }))
+  .then((quiz) => res.json(quiz))
+  .catch(err => res.json({ err: `Admin with id = [${adminId}] doesn\'t exist`}))
 })
 // get all quizzes
 app.get('/api/quizzes', (req, res) => {
@@ -86,7 +91,37 @@ app.get('/api/quizzes', (req, res) => {
 app.get('/api/quizzes/:id', (req, res) => {
   Quizz.findOne({ id: req.params.id }).then(quizz => res.json(quizz));
 })
+//delete quizz
+app.delete('/api/quizzes/:id', (req, res) => {
+  Quizz.destroy({ where: { id: req.params.id }})
+  .then(deleted => res.json(deleted));
+})
+//update quizz
+app.put('/api/quizzes/:id', (req, res) => {
+  Quizz.findOne({ where: { id: req.params.id }})
+  .then(quiz => quiz.updateAttributes(req.body.updates))
+  .catch(err => res.json({ err: 'Quizz does not exist '}));
+})
+//add language
+app.post('/api/locale/:id', (req, res) => {
+  const { locale, data, detail, subQuestion } = req.body;
+  if (locale) {
+  Quizz.findOne({ where: { id: req.params.id }})
+  .then(quizz => {
+    sequelize
+    .query(`CREATE TABLE IF NOT EXISTS quizz${locale} ( id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, detail VARCHAR(100), data VARCHAR(100), subQuestion VARCHAR(100), adminId VARCHAR(100) )`);
+    sequelize
+    .query(`INSERT INTO quizz${locale} ( data, detail, subQuestion, adminId ) VALUES ( '${data}', '${detail}', '${subQuestion}', '${quizz.adminId}' )` );
+  })
+  .then(() => res.json({ success: true }));
+  }
+  else {
+    res.json({ err: 'You must choose a locale'});
+  }
+})
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname + '/client/build/index.html'));
 });
+
 app.listen(PORT, () => console.log(`Server is running at http://localhost:${PORT}`))
