@@ -1,7 +1,7 @@
 import express from "express";
 import AdminModel from "./models/admin";
 import QuizzModel from "./models/quizz";
-
+import { converter } from './utilies';
 require("dotenv").config();
 const path = require("path");
 const Sequelize = require("sequelize");
@@ -93,7 +93,7 @@ app.get("/api/admins", (req, res) => {
 // Quizz api
 // Create quizz
 app.post("/api/quizzes", (req, res) => {
-  const { detail, subQuestion, data, adminId } = req.body;
+  const { detail, subQuestion, data } = req.body;
   Quizz.create({ detail, subQuestion, data })
   .then(quiz => res.json(quiz))
   .catch(err =>
@@ -102,13 +102,94 @@ app.post("/api/quizzes", (req, res) => {
 });
 // get all quizzes
 app.get("/api/quizzes", (req, res) => {
-  Quizz.findAll().then(quiz => res.json(quiz));
+  Quizz.findAll().then(quizzes => { 
+    const result = quizzes.map(quizz => {
+      const data = JSON.parse(quizz.dataValues.data);
+      const detail = JSON.parse(quizz.dataValues.detail);
+      const sub = JSON.parse(quizz.dataValues.subQuestion);
+      // console.log(data.en[0]);
+      // console.log('test', converter(""))
+
+      const { name, title, img, label, tags } = detail.en;
+      return {
+        id: quizz.id,
+        detail: {
+          en: {
+            name,
+            title,
+            img: converter(img),
+            label,
+            tags 
+          }
+        },
+        sub: {
+          en: {
+            title: sub.en.title,
+            img: converter(sub.en.img)
+          }
+        },
+        data: {
+          en: data.en.map(rel => {
+            return {
+              media: {
+                w: rel.media.w,
+                h: rel.media.h,
+                src: converter(rel.media.src)
+              },
+              avatar: rel.avatar,
+              name: rel.name
+            }
+          })
+        }
+      }
+    })
+    // console.log(result);
+    // console.log(JSON.parse(quizzes[0].dataValues.detail).en);
+    res.json(result) 
+  });
 });
 // get quizz by id
 app.get("/api/quizzes/:id", async (req, res) => {
-  const quiz = await Quizz.findOne({ where: { id: req.params.id }} );
-  if (quiz) {
-    return res.json(quiz);
+  const quizz = await Quizz.findOne({ where: { id: req.params.id }} );
+  if (quizz) {
+    const data = JSON.parse(quizz.dataValues.data);
+    const detail = JSON.parse(quizz.dataValues.detail);
+    const sub = JSON.parse(quizz.dataValues.subQuestion);
+    const { name, title, img, label, tags } = detail.en;
+
+    const result = {
+      id: quizz.id,
+      detail: {
+        en: {
+          name,
+          title,
+          img: converter(img),
+          label,
+          tags 
+        }
+      },
+      sub: {
+        en: {
+          title: sub.en.title,
+          img: converter(sub.en.img)
+        }
+      },
+      data: {
+        en: data.en.map(rel => {
+          return {
+            media: {
+              w: rel.media.w,
+              h: rel.media.h,
+              src: converter(rel.media.src)
+            },
+            avatar: rel.avatar,
+            name: rel.name
+          }
+        })
+      }
+    }
+      
+    return res.json(result);
   }
   return res.json({ error: `ID ${req.params.id} not exist`})
 });
