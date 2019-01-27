@@ -53,7 +53,7 @@ const Quizz = QuizzModel(sequelize, Sequelize);
 // Admin.hasMany(Quizz, { as: "Questions" });
 sequelize
   .sync({
-    force: true
+    force: false
   })
   .then(() => {
     console.log(`Database & tables created!`);
