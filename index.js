@@ -53,7 +53,7 @@ const Quizz = QuizzModel(sequelize, Sequelize);
 // Admin.hasMany(Quizz, { as: "Questions" });
 sequelize
   .sync({
-    force: false
+    force: true
   })
   .then(() => {
     console.log(`Database & tables created!`);
@@ -101,8 +101,9 @@ app.post("/api/quizzes", (req, res) => {
   );
 });
 // get all quizzes
-app.get("/api/quizzes", (req, res) => {
-  Quizz.findAll().then(quizzes => { 
+app.get("/api/quizzes", async (req, res) => {
+  const quizzes = await Quizz.findAll();
+  if (quizzes.length !== 0) { 
     const result = quizzes.map(quizz => {
       const data = JSON.parse(quizz.dataValues.data);
       const detail = JSON.parse(quizz.dataValues.detail);
@@ -145,8 +146,9 @@ app.get("/api/quizzes", (req, res) => {
     })
     // console.log(result);
     // console.log(JSON.parse(quizzes[0].dataValues.detail).en);
-    res.json(result) 
-  });
+    res.json(result)
+  }
+  res.json({ result: 'empty' });
 });
 // get quizz by id
 app.get("/api/quizzes/:id", async (req, res) => {
