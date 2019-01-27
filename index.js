@@ -9,16 +9,17 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
 
-var storage = multer.diskStorage({
-  destination: function(req, file, callback) {
-    callback(null, "public/images/uploads");
-  },
-  filename: function(req, file, callback) {
-    var imageUrl = file.fieldname + "-" + Date.now() + ".jpg";
-    callback(null, imageUrl);
+const storage = multer.diskStorage({
+  destination: "./public/uploads/",
+  filename: function(req, file, cb){
+     cb(null,"IMAGE-" + Date.now() + path.extname(file.originalname));
   }
 });
-var upload = multer({ storage: storage }).single("file");
+
+const upload = multer({
+  storage: storage,
+  limits:{fileSize: 1000000},
+});
 // const upload = multer({ dest: "./publics/images/uploads" });
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -49,7 +50,7 @@ sequelize
 const Admin = AdminModel(sequelize, Sequelize);
 const Quizz = QuizzModel(sequelize, Sequelize);
 
-Admin.hasMany(Quizz, { as: "Questions" });
+// Admin.hasMany(Quizz, { as: "Questions" });
 sequelize
   .sync({
     force: false
@@ -93,23 +94,23 @@ app.get("/api/admins", (req, res) => {
 // Create quizz
 app.post("/api/quizzes", (req, res) => {
   const { detail, subQuestion, data, adminId } = req.body;
-
-  Admin.findOne({ id: adminId })
-    .then(admin =>
-      Quizz.create({ detail, subQuestion, data, adminId: admin.id })
-    )
-    .then(quiz => res.json(quiz))
-    .catch(err =>
-      res.json({ err: `Admin with id = [${adminId}] doesn\'t exist` })
-    );
+  Quizz.create({ detail, subQuestion, data })
+  .then(quiz => res.json(quiz))
+  .catch(err =>
+      res.json({ error: `Error ${err}` })
+  );
 });
 // get all quizzes
 app.get("/api/quizzes", (req, res) => {
   Quizz.findAll().then(quiz => res.json(quiz));
 });
 // get quizz by id
-app.get("/api/quizzes/:id", (req, res) => {
-  Quizz.findOne({ id: req.params.id }).then(quizz => res.json(quizz));
+app.get("/api/quizzes/:id", async (req, res) => {
+  const quiz = await Quizz.findOne({ where: { id: req.params.id }} );
+  if (quiz) {
+    return res.json(quiz);
+  }
+  return res.json({ error: `ID ${req.params.id} not exist`})
 });
 //delete quizz
 app.delete("/api/quizzes/:id", (req, res) => {
@@ -118,10 +119,18 @@ app.delete("/api/quizzes/:id", (req, res) => {
   );
 });
 //update quizz
-app.put("/api/quizzes/:id", (req, res) => {
-  Quizz.findOne({ where: { id: req.params.id } })
-    .then(quiz => quiz.updateAttributes(req.body.updates))
-    .catch(err => res.json({ err: "Quizz does not exist " }));
+app.put("/api/quizzes/:id", async (req, res) => {
+  const { data, subQuestion, detail } = req.body;
+  const quiz = await Quizz.findOne({ where: { id: req.params.id } })
+  if (quiz) {
+    quiz.update({ data, detail, subQuestion })
+    res.json(quiz);
+  }
+  return res.json({ error: `ID ${req.params.id} not exist` })
+  
+  // .then(quiz => quiz.updateAttributes(req.body.updates))
+    // .then(quiz => res.json(quiz))
+    // .catch(err => res.json({ err: "Quizz does not exist " }));
 });
 //add language
 app.post("/api/locale/:id", (req, res) => {
@@ -129,6 +138,8 @@ app.post("/api/locale/:id", (req, res) => {
   if (locale) {
     Quizz.findOne({ where: { id: req.params.id } })
       .then(quizz => {
+        sequelize.query(`CREATE TABLE IF NOT EXISTS languages ( id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, type VARCHAR(100) )`);
+        sequelize.query(`INSERT INTO languages ( type ) VALUES ( '${locale}' ) `);
         sequelize.query(
           `CREATE TABLE IF NOT EXISTS quizz${locale} ( id INT NOT NULL PRIMARY KEY AUTO_INCREMENT, detail VARCHAR(100), data VARCHAR(100), subQuestion VARCHAR(100), adminId VARCHAR(100) )`
         );
@@ -145,28 +156,21 @@ app.post("/api/locale/:id", (req, res) => {
 });
 
 //upload file
-// app.post("/upload", upload.single("file"), (req, res) => {
-//   if (req.file) {
-//     console.log("Uploading file...");
-//     var filename = req.file.filename;
-//     var uploadStatus = "File Uploaded Successfully";
-//   } else {
-//     console.log("No File Uploaded");
-//     var filename = "FILE NOT UPLOADED";
-//     var uploadStatus = "File Upload Failed";
-//   }
+app.post("/upload", upload.single("myImage"), (req, res , next) => {
+  console.log('file', req.file.filename);
+  res.json({ path: `public/uploads/${req.file.filename}`})
+})
+// app.post("/upload", function(req, res) {
+//   upload(req, res, function(err, result) {
+//     console.log(err);
+//     console.log(result);
+//     if (err) {
+//       return res.end("Error uploading file." + err);
+//     }
+//     var path = req.file.path;
+//     res.json({ message: path });
+//   });
 // });
-app.post("/upload", function(req, res) {
-  upload(req, res, function(err, result) {
-    console.log(err);
-    console.log(result);
-    if (err) {
-      return res.end("Error uploading file." + err);
-    }
-    var path = req.file.path;
-    res.json({ message: path });
-  });
-});
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname + "/client/build/index.html"));
 });
