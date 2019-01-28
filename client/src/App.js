@@ -37,6 +37,7 @@ onChange(e) {
                 <input type="file" name="myImage" onChange= {this.onChange} />
                 <button type="submit">Upload</button>
         </form>
+        <img src="http://res.cloudinary.com/dmc1jnpn8/image/upload/v1548643069/demo/rwcatotirrqtaeavrko4.png"/>
       </div>
     );
   }
