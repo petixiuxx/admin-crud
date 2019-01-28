@@ -132,7 +132,7 @@ app.get("/api/quizzes", async (req, res) => {
           en: {
             name,
             title,
-            img: converter(img),
+            img: img,
             label,
             tags 
           }
@@ -140,7 +140,7 @@ app.get("/api/quizzes", async (req, res) => {
         sub: {
           en: {
             title: sub.en.title,
-            img: converter(sub.en.img)
+            img: sub.en.img
           }
         },
         data: {
@@ -149,7 +149,7 @@ app.get("/api/quizzes", async (req, res) => {
               media: {
                 w: rel.media.w,
                 h: rel.media.h,
-                src: converter(rel.media.src)
+                src: rel.media.src
               },
               avatar: rel.avatar,
               name: rel.name
@@ -179,7 +179,7 @@ app.get("/api/quizzes/:id", async (req, res) => {
         en: {
           name,
           title,
-          img: converter(img),
+          img,
           label,
           tags 
         }
@@ -187,7 +187,7 @@ app.get("/api/quizzes/:id", async (req, res) => {
       sub: {
         en: {
           title: sub.en.title,
-          img: converter(sub.en.img)
+          img: sub.en.img
         }
       },
       data: {
@@ -196,7 +196,7 @@ app.get("/api/quizzes/:id", async (req, res) => {
             media: {
               w: rel.media.w,
               h: rel.media.h,
-              src: converter(rel.media.src)
+              src: rel.media.src
             },
             avatar: rel.avatar,
             name: rel.name
