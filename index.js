@@ -1,6 +1,7 @@
 import express from "express";
 import AdminModel from "./models/admin";
 import QuizzModel from "./models/quizz";
+import ConfigModel from './models/config';
 import { converter } from './utilies';
 require("dotenv").config();
 const path = require("path");
@@ -62,6 +63,7 @@ sequelize
   });
 const Admin = AdminModel(sequelize, Sequelize);
 const Quizz = QuizzModel(sequelize, Sequelize);
+const Config = ConfigModel(sequelize, Sequelize);
 
 // Admin.hasMany(Quizz, { as: "Questions" });
 sequelize
@@ -79,7 +81,40 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "client/build")));
 app.use('/public/uploads', express.static(__dirname + 'public/uploads'))
+
 // api
+
+// update config
+app.post("/api/config/", async (req, res) => {
+  Config.findOrCreate({
+    where: { id: 1 },
+    defaults: { data: req.body.data}
+  }).spread((config, created) => {
+    console.log(
+      config.get({
+        plain: true
+      })
+    );
+    console.log(created);
+    res.json(config);
+  });
+});
+app.put("/api/config/", async (req, res) => {
+  const config = await Config.findOne({ where: { id: 1 } });
+  if (config) {
+    config.update({ data: req.body.data });
+    return res.json({ success: true });
+  }
+  return res.json({ error: 'id not exist' });
+});
+//get config
+app.get("/api/config/", async (req, res) => {
+  const config = await Config.findAll();
+  if (config) {
+    return res.json(config[0]);
+  }
+  return res.json({ error: 'not found'});
+})
 // create admin
 
 app.post("/api/admins", (req, res) => {
@@ -104,6 +139,13 @@ app.get("/api/admins", (req, res) => {
     res.json(admin);
   });
 });
+app.get("/api/login", async (req, res) => {
+  const admin = await Admin.findOne({ where: { username: "root", password: req.body.password } })
+  if (admin) {
+    return res.json({ success: true });
+  }
+  return res.json({ error: true });
+})
 // Quizz api
 // Create quizz
 app.post("/api/quizzes", (req, res) => {
@@ -115,47 +157,22 @@ app.post("/api/quizzes", (req, res) => {
   );
 });
 // get all quizzes
-app.get("/api/quizzes", async (req, res) => {
+app.get("/api/quizzes/", async (req, res) => {
   const quizzes = await Quizz.findAll();
   if (quizzes.length !== 0) { 
     const result = quizzes.map(quizz => {
       const data = JSON.parse(quizz.dataValues.data);
       const detail = JSON.parse(quizz.dataValues.detail);
-      const sub = JSON.parse(quizz.dataValues.subQuestion);
+      const subQuestion = JSON.parse(quizz.dataValues.subQuestion);
       // console.log(data.en[0]);
       // console.log('test', converter(""))
 
-      const { name, title, img, label, tags } = detail.en;
+      // const { name, title, img, label, tags } = detail.en;
       return {
         id: quizz.id,
-        detail: {
-          en: {
-            name,
-            title,
-            img: img,
-            label,
-            tags 
-          }
-        },
-        sub: {
-          en: {
-            title: sub.en.title,
-            img: sub.en.img
-          }
-        },
-        data: {
-          en: data.en.map(rel => {
-            return {
-              media: {
-                w: rel.media.w,
-                h: rel.media.h,
-                src: rel.media.src
-              },
-              avatar: rel.avatar,
-              name: rel.name
-            }
-          })
-        }
+        detail ,
+        subQuestion,
+        data
       }
     })
     // console.log(result);
@@ -170,39 +187,14 @@ app.get("/api/quizzes/:id", async (req, res) => {
   if (quizz) {
     const data = JSON.parse(quizz.dataValues.data);
     const detail = JSON.parse(quizz.dataValues.detail);
-    const sub = JSON.parse(quizz.dataValues.subQuestion);
-    const { name, title, img, label, tags } = detail.en;
+    const subQuestion = JSON.parse(quizz.dataValues.subQuestion);
+    // const { name, title, img, label, tags } = detail.en;
 
     const result = {
       id: quizz.id,
-      detail: {
-        en: {
-          name,
-          title,
-          img,
-          label,
-          tags 
-        }
-      },
-      sub: {
-        en: {
-          title: sub.en.title,
-          img: sub.en.img
-        }
-      },
-      data: {
-        en: data.en.map(rel => {
-          return {
-            media: {
-              w: rel.media.w,
-              h: rel.media.h,
-              src: rel.media.src
-            },
-            avatar: rel.avatar,
-            name: rel.name
-          }
-        })
-      }
+      detail,
+      subQuestion,
+      data
     }
       
     return res.json(result);
@@ -211,9 +203,16 @@ app.get("/api/quizzes/:id", async (req, res) => {
 });
 //delete quizz
 app.delete("/api/quizzes/:id", (req, res) => {
-  Quizz.destroy({ where: { id: req.params.id } }).then(deleted =>
-    res.json(deleted)
-  );
+  Quizz.findOne({ where: { id: req.params.id } })
+  .then(quizz => {
+    Quizz.destroy({ where: { id: req.params.id } }).then(deleted => { 
+      return res.json({ success: true });
+      }
+    )
+  })
+  .catch(err => {
+    return res.json({ error: 'Not exist' });
+  })
 });
 //update quizz
 app.put("/api/quizzes/:id", async (req, res) => {
@@ -221,7 +220,7 @@ app.put("/api/quizzes/:id", async (req, res) => {
   const quiz = await Quizz.findOne({ where: { id: req.params.id } })
   if (quiz) {
     quiz.update({ data, detail, subQuestion })
-    res.json(quiz);
+    return res.json(quiz);
   }
   return res.json({ error: `ID ${req.params.id} not exist` })
   
