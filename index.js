@@ -8,18 +8,31 @@ const Sequelize = require("sequelize");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const multer = require("multer");
+const cloudinary = require("cloudinary");
+const cloudinaryStorage = require("multer-storage-cloudinary");
+// const storage = multer.diskStorage({
+//   destination: "./public/uploads/",
+//   filename: function(req, file, cb){
+//      cb(null,"IMAGE-" + Date.now() + path.extname(file.originalname));
+//   }
+// });
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET
+  });
+const storage = cloudinaryStorage({
+  cloudinary: cloudinary,
+  folder: "demo",
+  allowedFormats: ["jpg", "png"],
+  transformation: [{ width: 500, height: 500, crop: "limit" }]
+  });
+const parser = multer({ storage: storage });
 
-const storage = multer.diskStorage({
-  destination: "./public/uploads/",
-  filename: function(req, file, cb){
-     cb(null,"IMAGE-" + Date.now() + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits:{fileSize: 1000000},
-});
+// const upload = multer({
+//   storage: storage,
+//   limits:{fileSize: 1000000},
+// });
 // const upload = multer({ dest: "./publics/images/uploads" });
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -65,6 +78,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "client/build")));
+app.use('/public/uploads', express.static(__dirname + 'public/uploads'))
 // api
 // create admin
 
@@ -239,10 +253,21 @@ app.post("/api/locale/:id", (req, res) => {
 });
 
 //upload file
-app.post("/upload", upload.single("myImage"), (req, res , next) => {
-  console.log('file', req.file.filename);
-  res.json({ path: `public/uploads/${req.file.filename}`})
-})
+// app.post("/upload", upload.single("myImage"), (req, res , next) => {
+//   console.log('file', req.file.filename);
+//   res.json({ path: `${req.file.url }`})
+// })
+
+app.post('/upload', parser.single("myImage"), (req, res) => {
+  // console.log(req.file) // to see what is returned to you
+  const image = {};
+  image.url = req.file.url;
+  image.id = req.file.public_id;
+  // Image.create(image) // save image information in database
+  //   .then(newImage => res.json(newImage))
+  //   .catch(err => console.log(err));
+  res.json({ image: { url: image.url, id: image.id }});
+});
 // app.post("/upload", function(req, res) {
 //   upload(req, res, function(err, result) {
 //     console.log(err);
@@ -254,7 +279,7 @@ app.post("/upload", upload.single("myImage"), (req, res , next) => {
 //     res.json({ message: path });
 //   });
 // });
-app.get("*", (req, res) => {
+app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname + "/client/build/index.html"));
 });
 
