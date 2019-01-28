@@ -19,7 +19,7 @@ onFormSubmit(e){
             'content-type': 'multipart/form-data'
         }
     };
-    axios.post("http://localhost:4000/upload",formData,config)
+    axios.post("/upload",formData,config)
         .then((response) => {
             alert("The file is successfully uploaded");
             console.log(response);

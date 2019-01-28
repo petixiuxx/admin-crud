@@ -146,9 +146,9 @@ app.get("/api/quizzes", async (req, res) => {
     })
     // console.log(result);
     // console.log(JSON.parse(quizzes[0].dataValues.detail).en);
-    res.json(result)
+    return res.json(result);
   }
-  res.json({ result: 'empty' });
+  return res.json({ result: 'empty' });
 });
 // get quizz by id
 app.get("/api/quizzes/:id", async (req, res) => {
