@@ -202,17 +202,16 @@ app.get("/api/quizzes/:id", async (req, res) => {
   return res.json({ error: `ID ${req.params.id} not exist`})
 });
 //delete quizz
-app.delete("/api/quizzes/:id", (req, res) => {
-  Quizz.findOne({ where: { id: req.params.id } })
-  .then(quizz => {
-    Quizz.destroy({ where: { id: req.params.id } }).then(deleted => { 
+app.delete("/api/quizzes/:id", async (req, res) => {
+  const quiz = await Quizz.findOne({ where: { id: req.params.id }});
+  if (quiz) {
+    Quizz.destroy({ where: { id: req.params.id } })
+    .then(deleted => { 
       return res.json({ success: true });
       }
-    )
-  })
-  .catch(err => {
-    return res.json({ error: 'Not exist' });
-  })
+    );
+  }
+  else return res.json({ error: 'id not exist'});
 });
 //update quizz
 app.put("/api/quizzes/:id", async (req, res) => {
