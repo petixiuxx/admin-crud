@@ -19,7 +19,7 @@ onFormSubmit(e){
             'content-type': 'multipart/form-data'
         }
     };
-    axios.post("/upload",formData,config)
+    axios.post("https://silvertest.tk/upload",formData,config)
         .then((response) => {
             alert("The file is successfully uploaded");
             console.log(response);

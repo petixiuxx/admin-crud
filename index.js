@@ -2,7 +2,7 @@ import express from "express";
 import AdminModel from "./models/admin";
 import QuizzModel from "./models/quizz";
 import ConfigModel from './models/config';
-import { converter } from './utilies';
+import { converter, checkJson } from './utilies';
 require("dotenv").config();
 const path = require("path");
 const Sequelize = require("sequelize");
@@ -161,9 +161,9 @@ app.get("/api/quizzes/", async (req, res) => {
   const quizzes = await Quizz.findAll();
   if (quizzes.length !== 0) { 
     const result = quizzes.map(quizz => {
-      const data = JSON.parse(quizz.dataValues.data);
-      const detail = JSON.parse(quizz.dataValues.detail);
-      const subQuestion = JSON.parse(quizz.dataValues.subQuestion);
+      const data = checkJson(quizz.dataValues.data) ? JSON.parse(quizz.dataValues.data) : quizz.dataValues.data;
+    const detail = checkJson(quizz.dataValues.detail) ? JSON.parse(quizz.dataValues.detail) : quizz.dataValues.detail;
+    const subQuestion = checkJson(quizz.dataValues.subQuestion) ? JSON.parse(quizz.dataValues.subQuestion) : quizz.dataValues.subQuestion;
       // console.log(data.en[0]);
       // console.log('test', converter(""))
 
@@ -185,9 +185,10 @@ app.get("/api/quizzes/", async (req, res) => {
 app.get("/api/quizzes/:id", async (req, res) => {
   const quizz = await Quizz.findOne({ where: { id: req.params.id }} );
   if (quizz) {
-    const data = JSON.parse(quizz.dataValues.data);
-    const detail = JSON.parse(quizz.dataValues.detail);
-    const subQuestion = JSON.parse(quizz.dataValues.subQuestion);
+
+    const data = checkJson(quizz.dataValues.data) ? JSON.parse(quizz.dataValues.data) : quizz.dataValues.data;
+    const detail = checkJson(quizz.dataValues.detail) ? JSON.parse(quizz.dataValues.detail) : quizz.dataValues.detail;
+    const subQuestion = checkJson(quizz.dataValues.subQuestion) ? JSON.parse(quizz.dataValues.subQuestion) : quizz.dataValues.subQuestion;
     // const { name, title, img, label, tags } = detail.en;
 
     const result = {
